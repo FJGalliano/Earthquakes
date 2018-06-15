@@ -1,0 +1,78 @@
+<!doctype html>
+<html>
+<head>
+  <title>Earthquakes the past 7-days</title>
+  <meta charset="utf-8"/>
+  <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.5/leaflet.css" />
+  <style>
+    .map {
+      width:1200px;
+      height:750px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Earthquakes the past 7-days</h1>
+  <div class="map"> </div>
+
+  <script src="http://cdn.leafletjs.com/leaflet-0.7.5/leaflet.js"></script>
+  <script>
+    (function () {
+      var FEED = "https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=2018-06-01&endtime=2018-06-07&maxlongitude=-50.52148437&minlongitude=-170.83789062&maxlatitude=80.74894534&minlatitude=10.16517337";
+      var NOW = new Date();
+      // create map
+      var map = L.map(document.querySelector('.map'));
+      // center of USA =  Lebanon, Kansas
+      map.setView([39.8283459, -98.5794797], 4);
+      // add basemap
+      L.tileLayer('https://services.arcgisonline.com/arcgis/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+          /**
+           * http://services.arcgisonline.com/arcgis/rest/services/World_Topo_Map/MapServer?f=pjson
+           * copyrightText
+           */
+          attribution: 'Sources: Esri, HERE, DeLorme, Intermap, increment P Corp., GEBCO, USGS, FAO, NPS, NRCAN,' +
+              ' GeoBase, IGN, Kadaster NL, Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong), swisstopo,' +
+              ' MapmyIndia, &copy;OpenStreetMap contributors, and the GIS User Community'
+          }).addTo(map);
+      // add earthquake layer
+      var earthquakes = L.geoJson([], {
+        onEachFeature: function (feature, layer) {
+          var props = feature.properties;
+          layer.bindPopup('<a href="' + props.url + '">' + props.title + '</a>');
+        },
+        pointToLayer: function (feature, latlng) {
+          var color,
+              mag,
+              radius;
+          mag = feature.properties.mag;
+          if (mag === null) {
+            color = '#fff';
+            radius = 2;
+          } else {
+            color = 'navy';
+            radius = 3 * Math.max(mag, 1);
+          }
+          if (feature.properties.type === 'quarry blast') {
+            color = 'red';
+          }
+          return L.circleMarker(latlng, {
+            color: color,
+            radius: radius
+          });
+        }
+      }).addTo(map);
+      // load data asynchronously
+      var xhr = new XMLHttpRequest();
+      xhr.onload = function () {
+        var results = JSON.parse(xhr.responseText);
+        earthquakes.addData(results);
+      };
+
+
+
+      xhr.open('GET', FEED, true);
+      xhr.send();
+    })();
+  </script>
+</body>
+</html>
